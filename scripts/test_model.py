@@ -4,30 +4,41 @@ import numpy as np
 
 print("🧪 Running model tests...")
 
+# Load model
 model = joblib.load("models/best_model.pkl")
 
-# Create synthetic input (safe for production)
-sample = {
-    "Age": 35,
-    "TypeofContact": "Company Invited",
-    "CityTier": 1,
-    "DurationOfPitch": 10,
-    "Occupation": "Salaried",
-    "Gender": "Male"
-}
+# ==============================
+# GET EXPECTED FEATURES
+# ==============================
+expected_cols = model.named_steps["preprocessor"].feature_names_in_
 
-df = pd.DataFrame([sample])
+# Create empty dataframe with all columns
+df = pd.DataFrame(columns=expected_cols)
 
-# Predict
+# Fill with default values
+for col in df.columns:
+    df[col] = 0  # default numeric
+
+# Override some realistic values
+df.loc[0, "Age"] = 35
+df.loc[0, "TypeofContact"] = "Company Invited"
+df.loc[0, "CityTier"] = 1
+
+# Convert categorical properly
+df = df.astype(object)
+
+# ==============================
+# PREDICT
+# ==============================
 probs = model.predict_proba(df)[:, 1]
 preds = (probs > 0.3).astype(int)
 
 # ==============================
-# ASSERTIONS (IMPORTANT)
+# ASSERTIONS
 # ==============================
 assert len(preds) == 1, "Prediction failed"
 assert not np.isnan(preds).any(), "NaN predictions"
-assert preds[0] in [0, 1], "Invalid class output"
+assert preds[0] in [0, 1], "Invalid output"
 
 print("✅ Test Passed")
 print("Probability:", probs[0])
