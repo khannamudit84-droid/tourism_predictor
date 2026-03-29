@@ -2,9 +2,9 @@ from huggingface_hub import hf_hub_download
 import shutil
 import os
 
-print("📥 Downloading model...")
-
 MODEL_REPO = "Mudit1984/tourism_project2"
+
+print("📥 Downloading model...")
 
 os.makedirs("models", exist_ok=True)
 
@@ -15,4 +15,4 @@ model_path = hf_hub_download(
 
 shutil.copy(model_path, "models/best_model.pkl")
 
-print("✅ Model downloaded successfully")
+print("✅ Model ready")
