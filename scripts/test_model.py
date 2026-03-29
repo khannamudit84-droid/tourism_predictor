@@ -1,14 +1,23 @@
 import pandas as pd
 import joblib
-import sklearn
 
-print("🔍 sklearn version:", sklearn.__version__)
+print("🧪 Testing model...")
 
+# Load model
 model = joblib.load("models/best_model.pkl")
 
-df = pd.read_csv("data/train.csv").head(5)
+# Use random sample (better than head)
+df = pd.read_csv("data/train.csv").sample(10, random_state=42)
+
 X = df.drop("ProdTaken", axis=1, errors="ignore")
 
-preds = model.predict(X)
+# Predict probabilities
+probs = model.predict_proba(X)[:, 1]
 
-print("✅ Predictions:", preds)
+# Business threshold (important)
+threshold = 0.3
+preds = (probs > threshold).astype(int)
+
+print("\n📊 Results:")
+print("Probabilities:", probs)
+print("Predictions:", preds)
