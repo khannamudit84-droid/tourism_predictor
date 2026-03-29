@@ -1,4 +1,4 @@
-name: Tourism Pipeline (HF Scripts)
+name: Tourism Pipeline (Stable)
 
 on:
   push:
@@ -17,36 +17,42 @@ jobs:
         uses: actions/checkout@v3
 
 
-      # 2. Install dependencies
+      # 2. Install dependencies (FIXED VERSION)
       - name: Install Dependencies
         run: |
-          pip install pandas scikit-learn joblib datasets huggingface_hub
+          pip install -r requirements.txt
 
 
-      # 3. Download dataset
-      - name: Download Dataset
+      # 3. Verify sklearn version (DEBUG)
+      - name: Check sklearn version
+        run: |
+          python -c "import sklearn; print('sklearn version:', sklearn.__version__)"
+
+
+      # 4. Download dataset
+      - name: Download Dataset from HF
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python scripts/download_dataset.py
 
 
-      # 4. Download model
-      - name: Download Model
+      # 5. Download model
+      - name: Download Model from HF
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python scripts/download_model.py
 
 
-      # 5. Debug (VERY IMPORTANT)
+      # 6. Verify files
       - name: Verify Files
         run: |
-          echo "📂 Files:"
+          echo "📂 Project structure:"
           ls -R
 
 
-      # 6. Test model
+      # 7. Test model (NO ERROR NOW)
       - name: Run Model Test
         run: |
           python scripts/test_model.py
