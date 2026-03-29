@@ -1,71 +1,59 @@
-name: Tourism Pipeline
+name: Tourism ML Pipeline
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-
   pipeline:
     runs-on: ubuntu-latest
 
     steps:
 
-      # 1. Checkout
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-
-      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
 
-      # 3. Install dependencies (LOCKED)
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-
-      # 4. Verify sklearn version
-      - name: Check sklearn version
-        run: |
-          python -c "import sklearn; print('sklearn version:', sklearn.__version__)"
-
-
-      # 5. Download dataset
-      - name: Download Dataset
-        run: |
-          python scripts/download_dataset.py
-
-
-      # 6. Retrain model (FIXED VERSION)
-      - name: Retrain Model
+      - name: Train + MLflow
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python scripts/retrain_model.py
 
-
-      # 7. Download latest model (optional)
       - name: Download Model
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python scripts/download_model.py
 
-
-      # 8. Verify files
-      - name: Verify Files
-        run: |
-          ls -R
-
-
-      # 9. Test model (NO ERROR NOW)
-      - name: Run Model Test
+      - name: Run Tests
         run: |
           python scripts/test_model.py
+
+      - name: Upload MLflow logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-runs
+          path: mlruns/
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: model
+          path: models/
