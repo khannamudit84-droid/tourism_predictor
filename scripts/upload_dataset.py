@@ -9,5 +9,4 @@ upload_file(
     repo_id="Mudit1984/tourism_project2",
     repo_type="dataset"
 )
-
 print("✅ Dataset uploaded to Hugging Face")
