@@ -1,12 +1,9 @@
-name: Tourism Pipeline (Stable HF Version)
+name: Tourism Pipeline (Final Stable)
 
 on:
   push:
     branches:
       - main
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true   # future-proof (optional)
 
 jobs:
 
@@ -15,53 +12,46 @@ jobs:
 
     steps:
 
-      # ==============================
-      # 1. CHECKOUT CODE (UPDATED)
-      # ==============================
+      # 1. Checkout
       - name: Checkout Repository
         uses: actions/checkout@v4
 
 
-      # ==============================
-      # 2. SETUP PYTHON
-      # ==============================
+      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
 
-      # ==============================
-      # 3. INSTALL DEPENDENCIES
-      # ==============================
+      # 3. Install dependencies (LOCKED)
       - name: Install Dependencies
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
 
-      # ==============================
-      # 4. VERIFY ENVIRONMENT
-      # ==============================
-      - name: Debug Environment
+      # 4. Verify sklearn version
+      - name: Check sklearn version
         run: |
-          python --version
-          pip list | grep scikit-learn
+          python -c "import sklearn; print('sklearn version:', sklearn.__version__)"
 
 
-      # ==============================
-      # 5. DOWNLOAD DATASET FROM HF
-      # ==============================
+      # 5. Download dataset
       - name: Download Dataset
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python scripts/download_dataset.py
 
 
-      # ==============================
-      # 6. DOWNLOAD MODEL FROM HF
-      # ==============================
+      # 6. Retrain model (FIXED VERSION)
+      - name: Retrain Model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python scripts/retrain_model.py
+
+
+      # 7. Download latest model (optional)
       - name: Download Model
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -69,18 +59,13 @@ jobs:
           python scripts/download_model.py
 
 
-      # ==============================
-      # 7. VERIFY FILES
-      # ==============================
+      # 8. Verify files
       - name: Verify Files
         run: |
-          echo "📂 Project structure:"
           ls -R
 
 
-      # ==============================
-      # 8. TEST MODEL (INFERENCE)
-      # ==============================
+      # 9. Test model (NO ERROR NOW)
       - name: Run Model Test
         run: |
           python scripts/test_model.py
