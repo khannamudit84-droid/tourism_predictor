@@ -1,5 +1,4 @@
 from datasets import load_dataset
-import pandas as pd
 import os
 
 print("📥 Downloading dataset from Hugging Face...")
@@ -18,8 +17,8 @@ train_df.to_csv("data/train.csv", index=False)
 if "test" in dataset:
     test_df = dataset["test"].to_pandas()
     test_df.to_csv("data/test.csv", index=False)
-    print("✅ Train & Test downloaded")
+    print("✅ Train & Test saved")
 else:
-    print("⚠️ Only train split found")
+    print("⚠️ No test split found")
 
-print("📊 Train shape:", train_df.shape)
+print("Train shape:", train_df.shape)
