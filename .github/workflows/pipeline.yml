@@ -1,4 +1,4 @@
-name: Tourism Pipeline (Final Stable)
+name: Tourism Pipeline
 
 on:
   push:
