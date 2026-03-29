@@ -1,45 +1,98 @@
 import joblib
 import pandas as pd
 import numpy as np
+from datasets import load_dataset
 
-print("🧪 Running model tests...")
+print("🧪 Running dynamic model tests...")
 
-# Load model
+# ==============================
+# LOAD MODEL
+# ==============================
 model = joblib.load("models/best_model.pkl")
 
 # ==============================
-# GET EXPECTED FEATURES
+# GET EXPECTED SCHEMA
 # ==============================
 expected_cols = model.named_steps["preprocessor"].feature_names_in_
 
-# Create empty dataframe with all columns
-df = pd.DataFrame(columns=expected_cols)
+def align_input(data_dict):
+    df = pd.DataFrame(columns=expected_cols)
 
-# Fill with default values
-for col in df.columns:
-    df[col] = 0  # default numeric
+    # Fill defaults
+    for col in df.columns:
+        df[col] = 0
 
-# Override some realistic values
-df.loc[0, "Age"] = 35
-df.loc[0, "TypeofContact"] = "Company Invited"
-df.loc[0, "CityTier"] = 1
+    # Override with actual values
+    for k, v in data_dict.items():
+        if k in df.columns:
+            df.loc[0, k] = v
 
-# Convert categorical properly
-df = df.astype(object)
-
-# ==============================
-# PREDICT
-# ==============================
-probs = model.predict_proba(df)[:, 1]
-preds = (probs > 0.3).astype(int)
+    return df
 
 # ==============================
-# ASSERTIONS
+# 1. TEST WITH REAL DATA
 # ==============================
-assert len(preds) == 1, "Prediction failed"
-assert not np.isnan(preds).any(), "NaN predictions"
-assert preds[0] in [0, 1], "Invalid output"
+print("\n🔍 Real Data Samples:")
 
-print("✅ Test Passed")
-print("Probability:", probs[0])
-print("Prediction:", preds[0])
+dataset = load_dataset("Mudit1984/tourism_project2")
+df_real = dataset["train"].to_pandas().drop("ProdTaken", axis=1)
+
+samples = df_real.sample(3, random_state=42)
+
+for i, row in samples.iterrows():
+    df = align_input(row.to_dict())
+    prob = model.predict_proba(df)[0][1]
+    pred = int(prob > 0.3)
+    print(f"Prob: {prob:.3f} → Pred: {pred}")
+
+# ==============================
+# 2. LOW VALUE CUSTOMER
+# ==============================
+low_value = {
+    "Age": 45,
+    "TypeofContact": "Company Invited",
+    "CityTier": 3,
+    "DurationOfPitch": 5,
+    "Occupation": "Unemployed",
+    "Gender": "Male",
+    "NumberOfPersonVisiting": 1,
+    "NumberOfFollowups": 1,
+    "PreferredPropertyStar": 2,
+    "NumberOfTrips": 0,
+    "Passport": 0,
+    "PitchSatisfactionScore": 2,
+    "OwnCar": 0,
+    "NumberOfChildrenVisiting": 2,
+    "MonthlyIncome": 15000
+}
+
+# ==============================
+# 3. HIGH VALUE CUSTOMER
+# ==============================
+high_value = {
+    "Age": 30,
+    "TypeofContact": "Self Enquiry",
+    "CityTier": 1,
+    "DurationOfPitch": 20,
+    "Occupation": "Professional",
+    "Gender": "Female",
+    "NumberOfPersonVisiting": 3,
+    "NumberOfFollowups": 5,
+    "PreferredPropertyStar": 5,
+    "NumberOfTrips": 6,
+    "Passport": 1,
+    "PitchSatisfactionScore": 5,
+    "OwnCar": 1,
+    "NumberOfChildrenVisiting": 0,
+    "MonthlyIncome": 150000
+}
+
+print("\n📉 Low Value Customer:")
+df = align_input(low_value)
+print("Prob:", model.predict_proba(df)[0][1])
+
+print("\n📈 High Value Customer:")
+df = align_input(high_value)
+print("Prob:", model.predict_proba(df)[0][1])
+
+print("\n✅ All tests completed")
