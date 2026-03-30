@@ -16,8 +16,6 @@ from sklearn.metrics import f1_score, classification_report
 from huggingface_hub import login, upload_file
 
 
-print(mlflow.sklearn.__version__)
-
 # ==============================
 # 1. CONFIG
 # ==============================
