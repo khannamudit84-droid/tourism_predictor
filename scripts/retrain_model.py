@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import mlflow
 import mlflow.sklearn
+import sklearn  # ✅ IMPORTANT
 
 from datasets import load_dataset
 from sklearn.model_selection import train_test_split
@@ -17,17 +18,23 @@ from huggingface_hub import login, upload_file
 
 
 # ==============================
+# 0. VERSION TRACKING (CRITICAL)
+# ==============================
+print("🔥 sklearn version used for training:", sklearn.__version__)
+
+# ==============================
 # 1. CONFIG
 # ==============================
 DATASET_NAME = "Mudit1984/tourism_project2"
 MODEL_DIR = "models"
 MODEL_PATH = f"{MODEL_DIR}/best_model.pkl"
+META_PATH = f"{MODEL_DIR}/metadata.pkl"
 F1_THRESHOLD = 0.6
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 # ==============================
-# 2. LOGIN (HF)
+# 2. LOGIN
 # ==============================
 login(token=os.getenv("HF_TOKEN"))
 
@@ -54,7 +61,7 @@ else:
     )
 
 # ==============================
-# 5. BASIC CLEANING
+# 5. CLEANING
 # ==============================
 train_df.drop(columns=["CustomerID"], errors="ignore", inplace=True)
 test_df.drop(columns=["CustomerID"], errors="ignore", inplace=True)
@@ -71,7 +78,7 @@ num_cols = X_train.select_dtypes(exclude="object").columns
 print(f"Categorical: {len(cat_cols)}, Numerical: {len(num_cols)}")
 
 # ==============================
-# 6. PIPELINE (PRODUCTION SAFE)
+# 6. PIPELINE
 # ==============================
 preprocessor = ColumnTransformer([
     ("num", Pipeline([
@@ -98,7 +105,7 @@ pipeline = Pipeline([
 ])
 
 # ==============================
-# 7. TRAIN + MLflow LOGGING
+# 7. TRAIN + LOG
 # ==============================
 with mlflow.start_run():
 
@@ -116,7 +123,8 @@ with mlflow.start_run():
     mlflow.log_params({
         "model": "RandomForest",
         "n_estimators": 200,
-        "max_depth": 10
+        "max_depth": 10,
+        "sklearn_version": sklearn.__version__  # ✅ KEY FIX
     })
 
     # Log metric
@@ -126,27 +134,45 @@ with mlflow.start_run():
     mlflow.sklearn.log_model(pipeline, "model")
 
     # ==============================
-    # 8. PERFORMANCE GATE
+    # PERFORMANCE GATE
     # ==============================
     if f1 < F1_THRESHOLD:
         raise Exception(f"❌ Model rejected. F1 {f1} < {F1_THRESHOLD}")
 
     print("✅ Model passed performance gate")
 
-    # ==============================
-    # 9. SAVE MODEL
-    # ==============================
-    joblib.dump(pipeline, MODEL_PATH)
-    print("✅ Model saved locally")
+# ==============================
+# 8. SAVE MODEL
+# ==============================
+joblib.dump(pipeline, MODEL_PATH)
 
-    # ==============================
-    # 10. PUSH TO HUGGING FACE
-    # ==============================
-    upload_file(
-        path_or_fileobj=MODEL_PATH,
-        path_in_repo="best_model.pkl",
-        repo_id=DATASET_NAME,
-        repo_type="model"
-    )
+# ==============================
+# 9. SAVE METADATA (VERY IMPORTANT)
+# ==============================
+metadata = {
+    "sklearn_version": sklearn.__version__,
+    "features": list(X_train.columns)
+}
 
-    print("🚀 Model uploaded to Hugging Face (PRODUCTION)")
+joblib.dump(metadata, META_PATH)
+
+print("✅ Model + metadata saved")
+
+# ==============================
+# 10. UPLOAD TO HF
+# ==============================
+upload_file(
+    path_or_fileobj=MODEL_PATH,
+    path_in_repo="best_model.pkl",
+    repo_id=DATASET_NAME,
+    repo_type="model"
+)
+
+upload_file(
+    path_or_fileobj=META_PATH,
+    path_in_repo="metadata.pkl",
+    repo_id=DATASET_NAME,
+    repo_type="model"
+)
+
+print("🚀 Model + metadata uploaded")
